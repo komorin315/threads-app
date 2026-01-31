@@ -4,7 +4,7 @@ from openai import OpenAI
 from notion_client import Client
 from flask import Flask, request, jsonify
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import MessageEvent, TextMessage
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
 
@@ -104,7 +104,7 @@ def handle_message(event):
 
     line_bot_api.reply_message(
         event.reply_token,
-        TextMessage(text=reply_text)
+        TextSendMessage(text=reply_text)
     )
 
 if __name__ == "__main__":
