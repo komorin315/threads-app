@@ -1,6 +1,6 @@
 import os
 import json
-from anthropic import Anthropic
+from openai import OpenAI
 from notion_client import Client
 from flask import Flask, request, jsonify
 from linebot import LineBotApi, WebhookHandler
@@ -9,23 +9,22 @@ from linebot.models import MessageEvent, TextMessage
 app = Flask(__name__)
 
 # 環境変数から取得（後で設定）
-CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 NOTION_API_KEY = os.environ.get('NOTION_API_KEY')
 NOTION_DATABASE_ID = os.environ.get('NOTION_DATABASE_ID')
 LINE_CHANNEL_ACCESS_TOKEN = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 LINE_CHANNEL_SECRET = os.environ.get('LINE_CHANNEL_SECRET')
 
 # 初期化
-claude_client = Anthropic(api_key=CLAUDE_API_KEY)
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
 notion = Client(auth=NOTION_API_KEY)
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-def categorize_with_claude(message_text):
-    """Claudeでメッセージをカテゴリ分け"""
-    response = claude_client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=1024,
+def categorize_with_ai(message_text):
+    """OpenAIでメッセージをカテゴリ分け"""
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
         messages=[{
             "role": "user",
             "content": f"""以下のメモを分析して、カテゴリとタイトルを決めてください。
@@ -43,17 +42,11 @@ def categorize_with_claude(message_text):
 
 メモ内容：
 {message_text}"""
-        }]
+        }],
+        response_format={"type": "json_object"}
     )
 
-    # Claudeの応答からJSONを抽出
-    content = response.content[0].text
-    # JSONブロックがある場合は抽出
-    if '```json' in content:
-        content = content.split('```json')[1].split('```')[0].strip()
-    elif '```' in content:
-        content = content.split('```')[1].split('```')[0].strip()
-
+    content = response.choices[0].message.content
     return json.loads(content)
 
 def save_to_notion(category, title, content):
@@ -93,8 +86,8 @@ def handle_message(event):
     message_text = event.message.text
 
     try:
-        # Claudeでカテゴリ分け
-        result = categorize_with_claude(message_text)
+        # OpenAIでカテゴリ分け
+        result = categorize_with_ai(message_text)
 
         # Notionに保存
         save_to_notion(
