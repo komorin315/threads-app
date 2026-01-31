@@ -1,0 +1,4 @@
+anthropic>=0.18.0
+notion-client>=2.0.0
+flask>=3.0.0
+line-bot-sdk>=3.0.0
